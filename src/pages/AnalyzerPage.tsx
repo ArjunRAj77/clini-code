@@ -1,13 +1,11 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import Fuse from "fuse.js";
 import { ArrowLeft, Upload, FileText, AlertCircle, Check, Copy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useICD10Data } from "@/hooks/use-icd-data";
 
 interface Entity {
   term: string;
@@ -24,86 +22,51 @@ export default function AnalyzerPage() {
   const [selectedEntityIndex, setSelectedEntityIndex] = useState<number | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [isWorkerReady, setIsWorkerReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const { data: icdData, isLoading: isDataLoading } = useICD10Data();
+  const workerRef = useRef<Worker | null>(null);
 
-  const fuse = useMemo(() => {
-    if (!icdData) return null;
-    return new Fuse(icdData, {
-      keys: ["description", "code"],
-      includeScore: true,
-      threshold: 0.4,
-      ignoreLocation: true,
+  // Initialize Worker
+  useEffect(() => {
+    workerRef.current = new Worker(new URL('../workers/analyzer.worker.ts', import.meta.url), {
+      type: 'module'
     });
-  }, [icdData]);
 
-  const handleAnalyze = async () => {
-    if (!text.trim() || !fuse) return;
+    workerRef.current.onmessage = (e) => {
+      const { type, value, entities, error } = e.data;
+      
+      if (type === 'READY') {
+        setIsWorkerReady(true);
+      } else if (type === 'PROGRESS') {
+        setProgress(value);
+      } else if (type === 'RESULT') {
+        setEntities(entities);
+        setIsAnalyzing(false);
+        setProgress(100);
+      } else if (type === 'ERROR') {
+        console.error("Worker Error:", error);
+        setIsAnalyzing(false);
+      }
+    };
+
+    // Start loading data immediately
+    workerRef.current.postMessage({ type: 'INIT' });
+
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
+
+  const handleAnalyze = () => {
+    if (!text.trim() || !workerRef.current) return;
     
     setIsAnalyzing(true);
     setEntities([]);
+    setProgress(0);
+    setSelectedEntityIndex(null);
 
-    // Simulate processing delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const foundEntities: Entity[] = [];
-    
-    // Split text into sentences/phrases to analyze
-    // We split by punctuation to get meaningful chunks
-    const segments = text.split(/([.?!,\n]+)/).filter(s => s.trim().length > 3);
-    
-    let currentIndex = 0;
-    
-    // We'll track covered ranges to avoid overlapping highlights
-    const coveredRanges: [number, number][] = [];
-
-    // Helper to check overlap
-    const isOverlapping = (start: number, end: number) => {
-      return coveredRanges.some(([s, e]) => 
-        (start >= s && start < e) || (end > s && end <= e) || (start <= s && end >= e)
-      );
-    };
-
-    // Analyze each segment
-    for (const segment of segments) {
-      const segmentStart = text.indexOf(segment, currentIndex);
-      if (segmentStart === -1) continue; // Should not happen if logic is correct
-      
-      const segmentEnd = segmentStart + segment.length;
-      currentIndex = segmentEnd;
-
-      // Skip if already covered (though splitting by seq shouldn't overlap)
-      if (isOverlapping(segmentStart, segmentEnd)) continue;
-
-      // Search this segment against ICD database
-      const results = fuse.search(segment);
-      
-      if (results.length > 0) {
-        const bestMatch = results[0];
-        // In Fuse.js, lower score is better. 0 is perfect match.
-        // We accept matches with score < 0.4 as "confident enough"
-        if (bestMatch.score !== undefined && bestMatch.score < 0.4) {
-          // Calculate confidence based on Fuse score (inverted)
-          // Score 0 -> 100%, Score 0.4 -> 60%
-          const confidence = 1 - (bestMatch.score || 0);
-          
-          foundEntities.push({
-            term: segment.trim(),
-            start: segmentStart,
-            end: segmentEnd,
-            icd10: bestMatch.item.code,
-            description: bestMatch.item.description,
-            confidence: confidence
-          });
-          
-          coveredRanges.push([segmentStart, segmentEnd]);
-        }
-      }
-    }
-
-    setEntities(foundEntities);
-    setIsAnalyzing(false);
+    workerRef.current.postMessage({ type: 'ANALYZE', text });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,7 +75,7 @@ export default function AnalyzerPage() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
-        setText(content.slice(0, 20000)); // Limit to 20k chars
+        setText(content.slice(0, 50000)); // Limit to 50k chars
       };
       reader.readAsText(file);
     }
@@ -139,7 +102,7 @@ export default function AnalyzerPage() {
 
   // Function to render text with highlights
   const renderHighlightedText = () => {
-    if (entities.length === 0) return <div className="whitespace-pre-wrap font-mono text-sm">{text}</div>;
+    if (entities.length === 0) return <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed">{text}</div>;
 
     const sortedEntities = [...entities].sort((a, b) => a.start - b.start);
     const elements = [];
@@ -212,7 +175,7 @@ export default function AnalyzerPage() {
               <CardTitle className="text-sm font-medium">Report Content</CardTitle>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
-                  {text.length}/20,000 chars
+                  {text.length}/50,000 chars
                 </span>
                 <input
                   type="file"
@@ -233,17 +196,17 @@ export default function AnalyzerPage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 p-0 min-h-0 relative overflow-auto">
+            <CardContent className="flex-1 p-0 min-h-[400px] relative overflow-auto bg-slate-50/30">
               {entities.length > 0 || isAnalyzing ? (
-                <div className="p-4 h-full overflow-auto">
+                <div className="p-6 h-full overflow-auto">
                   {renderHighlightedText()}
                 </div>
               ) : (
                 <Textarea
                   placeholder="Paste medical report text here..."
-                  className="w-full h-full min-h-full resize-none border-0 focus-visible:ring-0 p-4 font-mono text-sm"
+                  className="w-full h-full min-h-full resize-none border-0 focus-visible:ring-0 p-6 font-mono text-sm leading-relaxed bg-transparent"
                   value={text}
-                  onChange={(e) => setText(e.target.value.slice(0, 20000))}
+                  onChange={(e) => setText(e.target.value.slice(0, 50000))}
                   disabled={isAnalyzing}
                 />
               )}
@@ -252,7 +215,7 @@ export default function AnalyzerPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="absolute bottom-4 right-4 shadow-md"
+                  className="absolute bottom-4 right-4 shadow-md z-10"
                   onClick={() => {
                     setEntities([]);
                   }}
@@ -268,12 +231,12 @@ export default function AnalyzerPage() {
                size="lg" 
                className="w-full md:w-auto min-w-[200px]"
                onClick={handleAnalyze}
-               disabled={!text.trim() || isAnalyzing || isDataLoading}
+               disabled={!text.trim() || isAnalyzing || !isWorkerReady}
              >
-               {isAnalyzing || isDataLoading ? (
+               {isAnalyzing || !isWorkerReady ? (
                  <>
                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                   {isDataLoading ? "Loading Database..." : "Analyzing..."}
+                   {!isWorkerReady ? "Loading Database..." : `Analyzing (${progress}%)...`}
                  </>
                ) : (
                  <>
@@ -300,15 +263,19 @@ export default function AnalyzerPage() {
               {entities.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
                   {isAnalyzing ? (
-                    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                    <div className="flex flex-col items-center">
+                      <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                      <p className="text-sm font-medium">Processing...</p>
+                      <p className="text-xs text-muted-foreground mt-1">{progress}% complete</p>
+                    </div>
                   ) : (
-                    <FileText className="h-12 w-12 mb-4 opacity-20" />
+                    <>
+                      <FileText className="h-12 w-12 mb-4 opacity-20" />
+                      <p className="text-sm">
+                        No findings yet. Analyze a report to see results.
+                      </p>
+                    </>
                   )}
-                  <p className="text-sm">
-                    {isAnalyzing 
-                      ? "Processing clinical entities..." 
-                      : "No findings yet. Analyze a report to see results."}
-                  </p>
                 </div>
               ) : (
                 <div className="divide-y">
@@ -368,3 +335,5 @@ export default function AnalyzerPage() {
     </div>
   );
 }
+
+

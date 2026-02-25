@@ -49,7 +49,7 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Access the complete ICD-10 database instantly or analyze medical reports with AI-powered precision. Privacy-first, no data stored.
+              Access the complete <span className="font-semibold text-slate-700">2023 ICD-10</span> database instantly or analyze medical reports with AI-powered precision. Privacy-first, no data stored.
             </p>
 
             {/* Search Interface as Default */}
@@ -61,6 +61,9 @@ export default function LandingPage() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Zap size={14} /> Real-time Results
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <FileText size={14} /> 2023 Data Standard
                 </span>
               </div>
             </div>
@@ -124,11 +127,16 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-white py-12 px-6 border-t border-slate-100">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2.5 opacity-80">
-            <div className="bg-slate-100 p-1 rounded">
-              <ShieldCheck size={16} className="text-slate-500" />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2.5 opacity-80">
+              <div className="bg-slate-100 p-1 rounded">
+                <ShieldCheck size={16} className="text-slate-500" />
+              </div>
+              <span className="font-semibold text-slate-600">Clinicode</span>
             </div>
-            <span className="font-semibold text-slate-600">Clinicode</span>
+            <p className="text-xs text-slate-400 font-medium ml-1">
+              ✨ Vibe Coded by Arjun
+            </p>
           </div>
           <p className="text-xs text-slate-400 text-center md:text-right max-w-md">
             <strong>Disclaimer:</strong> This tool is for coding assistance only. Not for clinical diagnosis. Always verify codes with official documentation.
