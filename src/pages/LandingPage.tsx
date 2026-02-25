@@ -12,7 +12,7 @@ export default function LandingPage() {
           <div className="bg-blue-600 text-white p-1.5 rounded-lg shadow-sm shadow-blue-600/20">
             <ShieldCheck size={20} strokeWidth={2.5} />
           </div>
-          <span className="font-bold text-xl tracking-tight text-slate-900">Clinicode</span>
+          <span className="font-bold text-xl tracking-tight text-slate-900">Clini-Code</span>
         </div>
         <nav className="hidden md:flex items-center gap-8">
           <Link to="/analyze" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Analyzer</Link>
@@ -132,7 +132,7 @@ export default function LandingPage() {
               <div className="bg-slate-100 p-1 rounded">
                 <ShieldCheck size={16} className="text-slate-500" />
               </div>
-              <span className="font-semibold text-slate-600">Clinicode</span>
+              <span className="font-semibold text-slate-600">Clini-Code</span>
             </div>
             <p className="text-xs text-slate-400 font-medium ml-1">
               ✨ Vibe Coded by Arjun
