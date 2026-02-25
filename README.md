@@ -1,4 +1,4 @@
-# 🏥 Clinicode
+# 🏥 Clini-Code
 
 **Instant ICD-10 Search & Intelligent Medical Report Analysis**
 
@@ -7,7 +7,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 ![Vite](https://img.shields.io/badge/Vite-6.0-purple)
 
-Clinicode is a privacy-first, high-performance web application designed to streamline medical coding workflows. It features a lightning-fast fuzzy search for ICD-10 codes and an AI-simulated medical report analyzer that detects clinical terms and suggests codes in real-time.
+Clini-Code is a privacy-first, high-performance web application designed to streamline medical coding workflows. It features a lightning-fast fuzzy search for ICD-10 codes and an AI-simulated medical report analyzer that detects clinical terms and suggests codes in real-time.
 
 ---
 
@@ -32,7 +32,7 @@ Clinicode is a privacy-first, high-performance web application designed to strea
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/yourusername/clinicode.git
+    git clone https://github.com/ArjunRAj77/clini-code.git
     ```
 
 2.  **Install dependencies**
