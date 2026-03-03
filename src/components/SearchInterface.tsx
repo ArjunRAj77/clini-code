@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Fuse from "fuse.js";
 import { Search as SearchIcon, Copy, Check, Loader2, X, FileText, Share2 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,114 +114,151 @@ export function SearchInterface({ className }: { className?: string }) {
       {/* Results Area */}
       <div className="relative min-h-[100px]">
         {/* Dropdown View (As you type, before Enter) */}
-        {!showGrid && results.length > 0 && (
-          <Card className="absolute top-0 left-0 right-0 z-20 max-h-[400px] overflow-y-auto shadow-xl border-slate-200 animate-in fade-in slide-in-from-top-2 max-w-2xl mx-auto">
-            <div className="divide-y divide-slate-100">
-              {results.slice(0, 6).map(({ item, score }) => (
-                <div 
-                  key={item.code} 
-                  className="p-4 hover:bg-slate-50 transition-colors flex items-start gap-4 group cursor-pointer"
-                  onClick={() => setSelectedItem(item)}
-                >
-                  <div className="bg-blue-50 text-blue-700 font-mono font-bold px-3 py-1.5 rounded-md text-sm min-w-[80px] text-center border border-blue-100">
-                    {item.code}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 line-clamp-1">{item.description}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200 font-normal bg-white">
-                        {item.category}
-                      </Badge>
-                      <span className="text-[10px] text-slate-400">
-                        {Math.round((1 - (score || 0)) * 100)}% match
-                      </span>
+        <AnimatePresence>
+          {!showGrid && results.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-0 left-0 right-0 z-20"
+            >
+              <Card className="max-h-[400px] overflow-y-auto shadow-xl border-slate-200 max-w-2xl mx-auto">
+                <div className="divide-y divide-slate-100">
+                  {results.slice(0, 6).map(({ item, score }) => (
+                    <div 
+                      key={item.code} 
+                      className="p-4 hover:bg-slate-50 transition-colors flex items-start gap-4 group cursor-pointer"
+                      onClick={() => setSelectedItem(item)}
+                    >
+                      <div className="bg-blue-50 text-blue-700 font-mono font-bold px-3 py-1.5 rounded-md text-sm min-w-[80px] text-center border border-blue-100">
+                        {item.code}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 line-clamp-1">{item.description}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200 font-normal bg-white">
+                            {item.category}
+                          </Badge>
+                          <span className="text-[10px] text-slate-400">
+                            {Math.round((1 - (score || 0)) * 100)}% match
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-400 self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        View Details
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-xs text-slate-400 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    View Details
-                  </div>
+                  ))}
+                  {results.length > 6 && (
+                    <div 
+                      className="p-3 text-center text-sm text-blue-600 bg-slate-50 hover:bg-slate-100 cursor-pointer font-medium transition-colors"
+                      onClick={() => setShowGrid(true)}
+                    >
+                      View all {results.length} results
+                    </div>
+                  )}
                 </div>
-              ))}
-              {results.length > 6 && (
-                <div 
-                  className="p-3 text-center text-sm text-blue-600 bg-slate-50 hover:bg-slate-100 cursor-pointer font-medium transition-colors"
-                  onClick={() => setShowGrid(true)}
-                >
-                  View all {results.length} results
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Grid View (After Enter) */}
         {showGrid && results.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.05
+                }
+              }
+            }}
+          >
             {results.map(({ item, score }) => (
-              <Card 
-                key={item.code} 
-                className="group hover:shadow-lg transition-all duration-300 border-slate-200 hover:border-blue-200 bg-white overflow-hidden cursor-pointer relative"
-                onClick={() => setSelectedItem(item)}
+              <motion.div
+                key={item.code}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 }
+                }}
+                whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+                whileTap={{ scale: 0.98 }}
+                layoutId={item.code}
               >
-                <div className="p-5 flex flex-col h-full">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="bg-blue-50 text-blue-700 font-mono font-bold px-3 py-1.5 rounded-md text-lg border border-blue-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-colors">
-                      {item.code}
+                <Card 
+                  className="group hover:shadow-lg transition-all duration-300 border-slate-200 hover:border-blue-200 bg-white overflow-hidden cursor-pointer relative h-full"
+                  onClick={() => setSelectedItem(item)}
+                >
+                  <div className="p-5 flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="bg-blue-50 text-blue-700 font-mono font-bold px-3 py-1.5 rounded-md text-lg border border-blue-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-colors">
+                        {item.code}
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className={cn("font-mono text-xs", getAccuracyColor(score))}
+                      >
+                        {Math.round((1 - (score || 0)) * 100)}% match
+                      </Badge>
                     </div>
-                    <Badge 
-                      variant="outline" 
-                      className={cn("font-mono text-xs", getAccuracyColor(score))}
-                    >
-                      {Math.round((1 - (score || 0)) * 100)}% match
-                    </Badge>
-                  </div>
-                  
-                  <p className="text-slate-700 font-medium leading-relaxed mb-4 flex-1 line-clamp-3">
-                    {item.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-                    <Badge variant="secondary" className="text-xs font-normal bg-slate-100 text-slate-500 hover:bg-slate-200">
-                      {item.category}
-                    </Badge>
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy(item.code);
-                      }}
-                      className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 gap-2"
-                    >
-                      {copiedCode === item.code ? (
-                        <>
-                          <Check className="h-4 w-4 text-emerald-500" />
-                          <span className="text-emerald-600">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </Button>
+                    <p className="text-slate-700 font-medium leading-relaxed mb-4 flex-1 line-clamp-3">
+                      {item.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
+                      <Badge variant="secondary" className="text-xs font-normal bg-slate-100 text-slate-500 hover:bg-slate-200">
+                        {item.category}
+                      </Badge>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(item.code);
+                        }}
+                        className="text-slate-400 hover:text-blue-600 hover:bg-blue-50 gap-2"
+                      >
+                        {copiedCode === item.code ? (
+                          <>
+                            <Check className="h-4 w-4 text-emerald-500" />
+                            <span className="text-emerald-600">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* No Results State */}
         {debouncedQuery && results.length === 0 && !isLoading && (
-          <Card className="p-8 text-center shadow-sm border-slate-200 max-w-2xl mx-auto">
-            <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <SearchIcon className="h-6 w-6 text-slate-400" />
-            </div>
-            <p className="text-slate-900 font-medium">No codes found</p>
-            <p className="text-slate-500 text-sm mt-1">Try adjusting your search terms for "{debouncedQuery}"</p>
-          </Card>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <Card className="p-8 text-center shadow-sm border-slate-200 max-w-2xl mx-auto">
+              <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <SearchIcon className="h-6 w-6 text-slate-400" />
+              </div>
+              <p className="text-slate-900 font-medium">No codes found</p>
+              <p className="text-slate-500 text-sm mt-1">Try adjusting your search terms for "{debouncedQuery}"</p>
+            </Card>
+          </motion.div>
         )}
       </div>
 
